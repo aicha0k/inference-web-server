@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monitoramento do Motor</title>
+    <style>
+      :root {
+        --bg: #0f1b24;
+        --panel: #16262f;
+        --line: #26404d;
+        --text: #e6eef2;
+        --muted: #8aa3b0;
+        --ok: #3fc8a8;
+        --warn: #f2b43c;
+        --bad: #f0584f;
+        --accent: var(--ok);
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      :root[data-c="1"] {
+        --accent: var(--warn);
+      }
+      :root[data-c="2"] {
+        --accent: var(--bad);
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+      }
+      body {
+        min-height: 100%;
+        padding: 16px;
+        max-width: 980px;
+        margin: 0 auto;
+        font-variant-numeric: tabular-nums;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 2px 16px;
+      }
+      h1 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+      .conn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: var(--muted);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        padding: 6px 12px;
+        border-radius: 999px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--bad);
+      }
+      .conn.on .dot {
+        background: var(--ok);
+        box-shadow: 0 0 0 0 rgba(63, 200, 168, 0.6);
+        animation: ping 2s infinite;
+      }
+      .conn.demo .dot {
+        background: var(--warn);
+      }
+      @keyframes ping {
+        70% {
+          box-shadow: 0 0 0 8px rgba(63, 200, 168, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(63, 200, 168, 0);
+        }
+      }
+      .grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: 1.6fr 1fr;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 18px;
+      }
+      .panel h2 {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+      .hero {
+        border-left: 6px solid var(--accent);
+        transition: border-color 0.3s;
+      }
+      .state {
+        font-size: clamp(1.6rem, 5vw, 2.4rem);
+        font-weight: 700;
+        line-height: 1.1;
+        color: var(--accent);
+        transition: color 0.3s;
+      }
+      .sub {
+        color: var(--muted);
+        margin-top: 6px;
+        font-size: 0.9rem;
+        min-height: 1.3em;
+      }
+      .conf {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin-top: 20px;
+      }
+      .conf b {
+        font-size: 3.4rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .conf span {
+        color: var(--muted);
+      }
+      .bars {
+        margin-top: 18px;
+        display: grid;
+        gap: 10px;
+      }
+      .bar .row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+      }
+      .track {
+        height: 8px;
+        background: #0c161d;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .fill {
+        height: 100%;
+        width: 0;
+        border-radius: 4px;
+        transition: width 0.25s;
+      }
+      .side {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+      }
+      .ms {
+        font-size: 2.2rem;
+        font-weight: 700;
+      }
+      .ms small {
+        font-size: 0.9rem;
+        color: var(--muted);
+        font-weight: 400;
+      }
+      svg.spark {
+        width: 100%;
+        height: 56px;
+        margin-top: 8px;
+        display: block;
+      }
+      .stats {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 0.8rem;
+        margin-top: 6px;
+      }
+      .strip {
+        display: flex;
+        gap: 2px;
+        height: 28px;
+        margin-bottom: 14px;
+      }
+      .strip i {
+        flex: 1;
+        border-radius: 2px;
+        background: #0c161d;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        display: grid;
+        gap: 2px;
+        max-height: 260px;
+        overflow: auto;
+      }
+      li {
+        display: grid;
+        grid-template-columns: 10px 1fr auto auto;
+        gap: 12px;
+        align-items: center;
+        padding: 9px 4px;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.9rem;
+      }
+      li:last-child {
+        border: 0;
+      }
+      li .c {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      li .t,
+      li .d {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+      .empty {
+        color: var(--muted);
+        font-size: 0.9rem;
+        padding: 8px 0;
+      }
+      button {
+        background: none;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        border-radius: 6px;
+        padding: 4px 10px;
+        font: inherit;
+        font-size: 0.8rem;
+        cursor: pointer;
+      }
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .full {
+        grid-column: 1/-1;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Monitor do motor</h1>
+      <div style="display: flex; gap: 10px; align-items: center">
+        <button id="demoBtn" type="button">Modo demo</button>
+        <div class="conn" id="conn" role="status">
+          <span class="dot"></span><span id="connTxt">Desconectado</span>
+        </div>
+      </div>
+    </header>
+    <main class="grid">
+      <section class="panel hero" aria-live="polite">
+        <h2>Classificação atual</h2>
+        <div class="state" id="state">Aguardando dados</div>
+        <div class="sub" id="sub">Conecte ao ESP32 para iniciar.</div>
+        <div class="conf"><b id="conf">--</b><span>% de confiança</span></div>
+        <div class="bars" id="bars"></div>
+      </section>
+
+      <aside class="side">
+        <section class="panel">
+          <h2>Tempo de inferência</h2>
+          <div class="ms"><span id="ms">--</span> <small>ms</small></div>
+          <svg
+            class="spark"
+            id="spark"
+            viewBox="0 0 120 40"
+            preserveAspectRatio="none"
+          >
+            <polyline
+              id="line"
+              fill="none"
+              stroke="var(--accent)"
+              stroke-width="1.5"
+              vector-effect="non-scaling-stroke"
+              points=""
+            />
+          </svg>
+          <div class="stats">
+            <span>média <b id="avg">--</b> ms</span
+            ><span>máx <b id="max">--</b> ms</span>
+          </div>
+        </section>
+        <section class="panel">
+          <h2>Inferências</h2>
+          <div class="ms"><span id="count">0</span></div>
+          <div class="stats">
+            <span id="since">desde que a página abriu</span>
+          </div>
+        </section>
+      </aside>
+
+      <section class="panel full">
+        <h2>Histórico (últimas 60 inferências)</h2>
+        <div class="strip" id="strip"></div>
+        <h2>Mudanças de estado</h2>
+        <ul id="log">
+          <li class="empty" style="display: block">Nenhuma ainda.</li>
+        </ul>
+      </section>
+    </main>
+    <script>
+      const WS_URL = "ws:// " + location.hostname + "/ws";
+      // formato esperado: {"c": 0, p: [0.97, 0.02,0.01], "ms": 12.5}
+      const CLASSES = [
+        {
+          name: "Normal",
+          short: "Normal",
+          color: "var(--ok)",
+          sub: "Combustão normal",
+        },
+        {
+          name: "Falha de ignição em uma vela",
+          short: "1 vela",
+          color: "var(--warn)",
+          sub: "Uma vela não está funcionando",
+        },
+        {
+          name: "Falha de ignição em duas velas",
+          short: "2 velas",
+          color: "var(--bad)",
+          sub: "Duas velas com falha. Verifique o motor.",
+        },
+      ];
+      const N = 60;
+
+      const stateEl = (id) => document.getElementById(id);
+      let history = [],
+        times = [],
+        count = 0,
+        lastC = null,
+        lastChange = null,
+        ws,
+        retry = 1000,
+        demoTimer = null,
+        lastMsg = 0;
+      // barras
+      stateEl("bars").innerHTML = CLASSES.map(
+        (c, i) =>
+          `<div class="bar"><div class="row"><span>${c.short}</span><span id="pv${i}">0%</span></div><div class="track"><div class="fill" id="pf${i}" style="background:${c.color}"></div></div></div>`,
+      ).join("");
+      stateEl("strip").innerHTML = "<i></i>".repeat(N);
+
+      function setConn(mode) {
+        const el = stateEl("conn");
+        el.className = "conn " + mode;
+        stateEl("connTxt").textContent =
+          mode === "on"
+            ? "Conectado ao ESP32"
+            : mode === "demo"
+              ? "Modo demo"
+              : "Desconectado";
+      }
+      function fmtTime(d) {
+        return d.toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+      }
+      function fmtDur(s) {
+        return s < 60 ? s.toFixed(0) + "s" : (s / 60).toFixed(1) + "m";
+      }
+      function onData(d) {
+        lastMsg = Date.now();
+        const c = d.c,
+          p = d.p || [],
+          conf = (p[c] ?? 1) * 100,
+          now = new Date();
+        count++;
+        hist.push(c);
+        times.push(d.ms);
+        if (hist.length > N) hist.shift();
+        if (times.length > N) times.shift();
+
+        document.documentElement.dataset.c = c;
+        $("state").textContent = CLASSES[c].name;
+        $("sub").textContent = CLASSES[c].sub;
+        $("conf").textContent = conf.toFixed(1);
+        for (let i = 0; i < 3; i++) {
+          const v = (p[i] || 0) * 100;
+          $("pf" + i).style.width = v + "%";
+          $("pv" + i).textContent = v.toFixed(1) + "%";
+        }
+
+        $("ms").textContent = d.ms.toFixed(1);
+        const avg = times.reduce((a, b) => a + b, 0) / times.length;
+        $("avg").textContent = avg.toFixed(1);
+        $("max").textContent = Math.max(...times).toFixed(1);
+        const mx = Math.max(...times) * 1.2 || 1;
+        $("line").setAttribute(
+          "points",
+          times
+            .map((t, i) => `${(i / (N - 1)) * 120},${40 - (t / mx) * 38}`)
+            .join(" "),
+        );
+        $("count").textContent = count;
+
+        const cells = $("strip").children,
+          off = N - hist.length;
+        for (let i = 0; i < N; i++)
+          cells[i].style.background =
+            i < off ? "" : CLASSES[hist[i - off]].color;
+
+        if (c !== lastC) {
+          if (log.length) log[0].dur = (now - lastChange) / 1000;
+          log.unshift({ c, t: now, conf, dur: null });
+          if (log.length > 30) log.pop();
+          lastC = c;
+          lastChange = now;
+          renderLog();
+        }
+      }
+      function renderLog() {
+        $("log").innerHTML = log
+          .map(
+            (e, i) =>
+              `<li><span class="c" style="background:${CLASSES[e.c].color}"></span><span>${CLASSES[e.c].name}</span><span class="t">${fmtTime(e.t)}</span><span class="d">${i === 0 ? "agora" : fmtDur(e.dur)}</span></li>`,
+          )
+          .join("");
+      }
+
+      // ===== Conexão real =====
+      function connect() {
+        if (demoTimer) return;
+        try {
+          ws = new WebSocket(WS_URL);
+        } catch (e) {
+          return schedule();
+        }
+        ws.onopen = () => {
+          setConn("on");
+          retry = 1000;
+        };
+        ws.onmessage = (e) => {
+          try {
+            onData(JSON.parse(e.data));
+          } catch (_) {}
+        };
+        ws.onclose = () => {
+          if (!demoTimer) {
+            setConn("off");
+            schedule();
+          }
+        };
+        ws.onerror = () => ws.close();
+      }
+      function schedule() {
+        setTimeout(connect, retry);
+        retry = Math.min(retry * 1.5, 8000);
+      }
+
+      // se o ESP32 parar de enviar, marca como desconectado
+      setInterval(() => {
+        if (
+          !demoTimer &&
+          ws &&
+          ws.readyState === 1 &&
+          Date.now() - lastMsg > 4000 &&
+          lastMsg
+        )
+          setConn("off");
+        else if (
+          !demoTimer &&
+          ws &&
+          ws.readyState === 1 &&
+          Date.now() - lastMsg < 4000
+        )
+          setConn("on");
+      }, 1000);
+
+      // ===== Modo demo (para testar o visual sem o ESP32) =====
+      let dc = 0;
+      function demoStep() {
+        if (Math.random() < 0.04) dc = Math.floor(Math.random() * 3);
+        const top = 0.82 + Math.random() * 0.17,
+          rest = (1 - top) * Math.random();
+        const p = [0, 0, 0];
+        p[dc] = top;
+        const o = [0, 1, 2].filter((i) => i !== dc);
+        p[o[0]] = rest;
+        p[o[1]] = 1 - top - rest;
+        onData({ c: dc, p, ms: 9 + Math.random() * 6 });
+      }
+      $("demoBtn").onclick = () => {
+        if (demoTimer) {
+          clearInterval(demoTimer);
+          demoTimer = null;
+          $("demoBtn").textContent = "Modo demo";
+          setConn("off");
+          connect();
+        } else {
+          if (ws) ws.close();
+          demoTimer = setInterval(demoStep, 500);
+          $("demoBtn").textContent = "Sair do demo";
+          setConn("demo");
+        }
+      };
+
+      connect();
+    </script>
+  </body>
+</html>
